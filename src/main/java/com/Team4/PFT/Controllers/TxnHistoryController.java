@@ -1,0 +1,75 @@
+package com.Team4.PFT.Controllers;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.Team4.PFT.Services.TxnHistoryService;
+import com.Team4.PFT.DTOs.TxnHistoryDTO;
+import com.Team4.PFT.Entities.TxnHistory;
+
+@RestController
+@RequestMapping("/api/txnHistory")
+public class TxnHistoryController {
+	
+	
+	@Autowired
+	private TxnHistoryService txnHistoryService;
+	
+	
+	//Route that is used to consume and input CSV data to DB...Scotia's CSV format is currently only supported.
+	@PostMapping("upload")
+	public ResponseEntity<String> uploadTxnCSV(@RequestParam("file") MultipartFile file, @RequestParam("userId") Long userId) {
+		
+		try {
+			txnHistoryService.uploadCSV(file, userId);
+			return ResponseEntity.ok("CSV has been uploaded successfully!");
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Upload has failed: " + e.getMessage());
+		}
+	}
+	
+	@GetMapping("betweenDates")
+	public ResponseEntity<?> getTxnBetweenDates(@RequestParam("startDate") LocalDate startDate, 
+			@RequestParam("endDate") LocalDate endDate,
+			@RequestParam(value = "userId") Long userId){
+		List<TxnHistory> txns;
+		if (userId != null) {
+			txns = txnHistoryService.searchBetweenDates(startDate, endDate, userId);
+		}
+		else {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body("User could not be found!");
+		}
+		
+		return ResponseEntity.ok(txns);
+	}
+	
+	@GetMapping("monthsTotal")
+	public ResponseEntity<?> getMonthsTxns(@RequestParam("userId") Long userId) {
+		Double total = txnHistoryService.monthsTotal(userId);
+		return ResponseEntity.ok(total);
+	}
+	//get all txn data for user.
+	/*
+	 * @GetMapping("/view/{userId}") public ResponseEntity<?>
+	 * viewHistory(@PathVariable Long userId) {
+	 * 
+	 * try { List<TxnHistoryDTO> history = txnHistoryService.getAllHistory(userId);
+	 * return ResponseEntity.ok(history); } catch (Exception e) { return
+	 * ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	 * .body("Fetching history has failed!: " + e.getMessage()); } }
+	 */
+}
